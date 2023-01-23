@@ -1,0 +1,8 @@
+{
+    "set_id": "BRO",
+    "model_path": "../data/BRO/models/draft_bot_nnet_2023-01-03-20-epoch-adam",
+    "card_list_path": "../data/BRO/per_card_data/BRO_canonical_card_list.json",
+    "card_arena_ids_path": "../data/BRO/per_card_data/arena_ids_to_names.json",
+    "card_image_dir": "../data/BRO/card_images",
+    "set_size": 335
+}

@@ -1,0 +1,8 @@
+/data/BRO/models
+/data/BRO/raw
+/data/BRO/processed
+/data/BRO/card_images
+
+/data/arena_logs
+
+*.pyc

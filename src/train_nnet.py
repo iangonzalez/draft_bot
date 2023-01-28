@@ -30,7 +30,7 @@ from training.draft_dataset_splitter import DraftDatasetSplitter
 # Per-set configuration parameters.
 _SET_CONFIG = None
 
-def train(net, trainloader, optimizer, criterion, epochs):
+def train(net, trainloader, optimizer, criterion, epochs, cuda_device):
     """
     Optimizes `criterion` using the algorithm specified by `optimizer` to
     train `net` on the `trainloader` training set for `epochs` iterations.
@@ -38,12 +38,16 @@ def train(net, trainloader, optimizer, criterion, epochs):
     This is a pretty standard traning loop emulating the intro instructions at
     https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html
     """
+    if cuda_device is not None:
+        net.to(cuda_device)
     for epoch in range(epochs):  # loop over the dataset multiple times
         running_loss = 0.0
         for i, data in enumerate(trainloader, 0):
             # get the inputs; data is a packed tensor of
             # [pack, pool, pick]. Split into inputs and labels.
             data = data.to(torch.float32)
+            if cuda_device is not None:
+                data = data.to(cuda_device)
             inputs = data[:, :(_SET_CONFIG.set_size * 2)]
             labels = data[:, (_SET_CONFIG.set_size * 2):]
 
@@ -58,31 +62,38 @@ def train(net, trainloader, optimizer, criterion, epochs):
 
             # print statistics
             running_loss += loss.item()
-            if i % 2000 == 1999:    # print every 2000 mini-batches
+            if i % 20 == 19:    # print every 20 mini-batches
                 print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
                 running_loss = 0.0
     print("Finished Training.")
 
 
-def train_and_save_nnet(data_dir, out_dir):
+def train_and_save_nnet(data_dir, out_dir, train_on_gpu):
     """
     Trains on the split dataset contained in `data_dir`. Saves the resulting
     model to `out_dir`.
 
     Model file name will be timestamped with the time it was trained.
-
-    TODO(iangonzalez): Add cuda training capability to this function.
     """
+    cuda_device = None
+    if train_on_gpu:
+        if torch.cuda.is_available():
+            cuda_device = torch.device('cuda:0')
+            print("Starting training on device: ", cuda_device)
+        else:
+            print("GPU training not available, continuing on CPU.")
     net = DraftPickNN(card_pool_size=_SET_CONFIG.set_size)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(net.parameters(),  lr=0.001, betas=(0.9, 0.999))
     dataset_splitter = DraftDatasetSplitter(data_dir)
     trainloader = torch.utils.data.DataLoader(
         IterableDraftDataset(dataset_splitter.get_training_splits()), 
-        batch_size=100
+        batch_size=10000
     )
-    train(net, trainloader, optimizer, criterion, epochs=20)
-    torch.save(net, os.path.join(out_dir, "draft_bot_nnet_{0}.pt".format(datetime.datetime.now())))
+    train(net, trainloader, optimizer, criterion, epochs=20, cuda_device=cuda_device)
+    model_file = "draft_bot_nnet_{0}.pt".format(datetime.datetime.now())
+    print("Saving trained model to ", model_file)
+    torch.save(net, os.path.join(out_dir, model_file))
 
 
 if __name__ == "__main__":
@@ -95,9 +106,10 @@ if __name__ == "__main__":
                         help='set id of the drafts being tested (configuration purposes).')
     parser.add_argument('--set-config-path', type=str, required=False, dest='set_config_path',
                         help='set config of the drafts being tested (configuration purposes). Overrides set-id.')
+    parser.add_argument('--gpu', action='store_true')
     args = parser.parse_args()
     if args.set_config_path is not None:
         _SET_CONFIG = set_config.get_set_config_from_path(args.set_config_path)
     else:
         _SET_CONFIG = set_config.get_set_config(args.set_id)
-    train_and_save_nnet(data_dir=args.data_dir, out_dir=args.out_dir)
+    train_and_save_nnet(data_dir=args.data_dir, out_dir=args.out_dir, train_on_gpu=args.gpu)

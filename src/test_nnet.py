@@ -23,13 +23,17 @@ from training.draft_dataset_splitter import DraftDatasetSplitter
 
 _SET_CONFIG = None
 
-def test_nnet(net, dataloader):
+def test_nnet(net, dataloader, cuda_device):
     net.eval()
+    if cuda_device is not None:
+        net.to(cuda_device)
     with torch.no_grad():
         correct = 0.0
         total = 0.0
         for data in dataloader:
             data = data.to(torch.float32)
+            if cuda_device is not None:
+                data = data.to(cuda_device)
             inputs = data[:, :(_SET_CONFIG.set_size * 2)]
             labels = data[:, (_SET_CONFIG.set_size * 2):]
 
@@ -45,14 +49,21 @@ def test_nnet(net, dataloader):
         print("Validation accuracy:", accuracy, " Total picks:", int(total))
 
 
-def load_and_test_model(data_dir, model_path):
+def load_and_test_model(data_dir, model_path, test_on_gpu):
+    cuda_device = None
+    if test_on_gpu:
+        if torch.cuda.is_available():
+            cuda_device = torch.device('cuda:0')
+            print("Starting testing on device: ", cuda_device)
+        else:
+            print("GPU not available, continuing on CPU.")
     dataset_splitter = DraftDatasetSplitter(data_dir)
     testloader = torch.utils.data.DataLoader(
         IterableDraftDataset(dataset_splitter.get_test_splits()), 
         batch_size=100
     )
     net = torch.load(model_path)
-    test_nnet(net, testloader)
+    test_nnet(net, testloader, cuda_device)
 
 
 if __name__ == "__main__":
@@ -65,10 +76,11 @@ if __name__ == "__main__":
                         help='set id of the drafts being tested (configuration purposes).')
     parser.add_argument('--set-config-path', type=str, required=False, dest='set_config_path',
                         help='set config of the drafts being tested (configuration purposes). Overrides set-id.')
+    parser.add_argument('--gpu', action='store_true')
     args = parser.parse_args()
     if args.set_config_path is not None:
         _SET_CONFIG = set_config.get_set_config_from_path(args.set_config_path)
     else:
         _SET_CONFIG = set_config.get_set_config(args.set_id)
 
-    load_and_test_model(data_dir=args.data_dir, model_path=args.model_path)
+    load_and_test_model(data_dir=args.data_dir, model_path=args.model_path, test_on_gpu=args.gpu)

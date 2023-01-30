@@ -20,6 +20,11 @@ Make sure you have the python packages `torch`, `numpy`, and `pandas` installed.
 
 See below for more detailed explanations.
 
+### Colab
+
+If you would prefer to get started with a notebook where you can examine the 
+data, feel free to use the .ipynb under `colab/`.
+
 ## Data directory
 
 The code generally expects that you will store your data under the `data/<set id>`

@@ -113,7 +113,7 @@ class PickDisplayer:
     def print_current_pool_to_console(self, pool_vector):
         pool_names = self._card_vector_to_card_names(pool_vector)
         pool_names = expand_card_counts(pool_names)
-        print("current pool: ", pool_names)
+        print("Current pool: ", pool_names)
     
     def print_pack_and_predictions_to_console(self, pack_vector, preds):
         pack_names = self._card_vector_to_card_names(pack_vector)

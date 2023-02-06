@@ -14,8 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
 import os
-import sys
 
 import pandas as pd
 import numpy as np
@@ -24,6 +24,9 @@ import torch
 # Number of rows to be processed at a time. Configurable depending on available
 # RAM on the worker machine.
 _ROW_BATCH_SIZE = 500000
+
+# Number of picks assumed to be in each draft.
+_PICK_COUNT_DIM = 45
 
 def is_file_valid(data_file):
     """
@@ -70,6 +73,24 @@ def get_sorted_card_names(pack_cols):
     return [s[len(prefix):] if s.startswith(prefix) else s for s in pack_cols]
 
 
+def get_valid_draft_ids(df, pick_count_dim):
+    id_counts = pd.value_counts(df["draft_id"])
+    return [id for id in id_counts.keys() if id_counts[id] == pick_count_dim]
+
+
+def filter_for_valid_drafts(df):
+    valid_draft_ids = set(get_valid_draft_ids(df, _PICK_COUNT_DIM))
+    valid_draft_idxs = df["draft_id"].apply(lambda x: x in valid_draft_ids)
+    return df.loc[valid_draft_idxs]
+
+
+def add_pick_num_dimension(draft_tensor_2d):
+    assert draft_tensor_2d.shape[0] % _PICK_COUNT_DIM == 0
+    draft_count_dim = int(draft_tensor_2d.shape[0] / _PICK_COUNT_DIM)
+    feature_count_dim = draft_tensor_2d.shape[1]
+    return draft_tensor_2d.reshape((draft_count_dim, _PICK_COUNT_DIM, feature_count_dim))
+
+
 def card_names_to_vector(names, card_index_map, card_vec):
   """
   INPUT:
@@ -83,7 +104,7 @@ def card_names_to_vector(names, card_index_map, card_vec):
     card_vec[card_index_map[name]] += 1
 
 
-def vectorize_and_store_dataset(data_file, out_dir):
+def vectorize_and_store_dataset(data_file, out_dir, is_sequential):
     """
     Vectorizes the draft data and saves as a series of pickled tensors.
 
@@ -117,7 +138,13 @@ def vectorize_and_store_dataset(data_file, out_dir):
     chunk_number = 0
     for chunk in df_iterator:
         df = pd.DataFrame(chunk)
-        # Create representation of picks.
+
+        if is_sequential:
+            # In the sequential case, every draft must be a sequence of picks
+            # of the expected size (_PICK_COUNT_DIM) or the reshape will fail.
+            df = filter_for_valid_drafts(df)
+
+        # Create vectorized representation of picks.
         pick_matrix = np.zeros((df.shape[0], len(card_index_map)), dtype=np.int8)
         for i, pick in enumerate(df["pick"]):
             card_names_to_vector([pick], card_index_map, pick_matrix[i])
@@ -126,16 +153,26 @@ def vectorize_and_store_dataset(data_file, out_dir):
         # that contain that data.
         canonicalized_pack_and_pool_vectors_df = df[sorted(pack_cols) + sorted(pool_cols)]
 
-        # Concatentate the two, then save.
-        processed_draft_tensor = torch.cat((torch.tensor(canonicalized_pack_and_pool_vectors_df.values), 
+        # Concatentate the two.
+        draft_tensor = torch.cat((torch.tensor(canonicalized_pack_and_pool_vectors_df.values), 
                                  torch.tensor(pick_matrix)), dim=1)
+        if is_sequential:
+            # Reshape to add a dimension for per-draft pick number.
+            draft_tensor = add_pick_num_dimension(draft_tensor)
+
         out_file_path = os.path.join(out_dir, output_file_pattern.format(chunk_number))
-        print("Saving a vectorized data matrix of size", processed_draft_tensor.shape, "at",  out_file_path)
-        torch.save(processed_draft_tensor, out_file_path)
+        print("Saving a vectorized data matrix of size", draft_tensor.shape, "at",  out_file_path)
+        torch.save(draft_tensor, out_file_path)
         chunk_number += 1
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print("Usage: vectorize_data.py <input csv> <output dir>")
-    vectorize_and_store_dataset(sys.argv[1], sys.argv[2])
+    parser = argparse.ArgumentParser(description='Process a raw 17lands csv file into a vectorized format usable for training.')
+    parser.add_argument('-d', '--data-file', type=str, dest='data_file',
+                        help='.csv file to load the dataset from.')
+    parser.add_argument('-o','--out-dir', type=str, dest='out_dir',
+                        help='Directory to write the vectorized data to.')
+    parser.add_argument('--sequential', action='store_true',
+                        help='Toggle to store the data as a sequence of picks (grouped by draft id).')
+    args = parser.parse_args()
+    vectorize_and_store_dataset(args.data_file, args.out_dir, args.sequential)

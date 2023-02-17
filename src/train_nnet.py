@@ -43,6 +43,9 @@ def train(net, trainloader, optimizer, criterion, epochs, cuda_device):
     for epoch in range(epochs):  # loop over the dataset multiple times
         running_loss = 0.0
         for i, data in enumerate(trainloader, 0):
+            # Sequential data case (3-dimensional). Unroll picks into 2d.
+            if len(data.shape) == 3:
+                data = data.reshape((data.shape[0] * data.shape[1], data.shape[2]))
             # get the inputs; data is a packed tensor of
             # [pack, pool, pick]. Split into inputs and labels.
             data = data.to(torch.float32)
@@ -88,7 +91,7 @@ def train_and_save_nnet(data_dir, out_dir, train_on_gpu):
     dataset_splitter = DraftDatasetSplitter(data_dir)
     trainloader = torch.utils.data.DataLoader(
         IterableDraftDataset(dataset_splitter.get_training_splits()), 
-        batch_size=10000
+        batch_size=1000
     )
     train(net, trainloader, optimizer, criterion, epochs=20, cuda_device=cuda_device)
     model_file = "draft_bot_nnet_{0}.pt".format(datetime.datetime.now())

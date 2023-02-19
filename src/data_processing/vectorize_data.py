@@ -104,7 +104,13 @@ def card_names_to_vector(names, card_index_map, card_vec):
     card_vec[card_index_map[name]] += 1
 
 
-def vectorize_and_store_dataset(data_file, out_dir, is_sequential):
+def filter_drafts_for_high_win_rate(df):
+    win_rate_bucket = df['user_game_win_rate_bucket']
+    avg_win_rate = win_rate_bucket.mean()
+    return df.loc[win_rate_bucket > avg_win_rate]
+
+
+def vectorize_and_store_dataset(data_file, out_dir, is_sequential, filter_by_win_rate):
     """
     Vectorizes the draft data and saves as a series of pickled tensors.
 
@@ -139,6 +145,8 @@ def vectorize_and_store_dataset(data_file, out_dir, is_sequential):
     for chunk in df_iterator:
         df = pd.DataFrame(chunk)
 
+        if filter_by_win_rate:
+            df = filter_drafts_for_high_win_rate(df)
         if is_sequential:
             # In the sequential case, every draft must be a sequence of picks
             # of the expected size (_PICK_COUNT_DIM) or the reshape will fail.
@@ -174,5 +182,8 @@ if __name__ == '__main__':
                         help='Directory to write the vectorized data to.')
     parser.add_argument('--sequential', action='store_true',
                         help='Toggle to store the data as a sequence of picks (grouped by draft id).')
+    parser.add_argument('--win-rate-filter', action='store_true', dest='win_rate_filter',
+                        help='Toggle to filter draft picks by player win rate (upper half of distrubution).')
     args = parser.parse_args()
-    vectorize_and_store_dataset(args.data_file, args.out_dir, args.sequential)
+    vectorize_and_store_dataset(args.data_file, args.out_dir, args.sequential,
+                                args.win_rate_filter)

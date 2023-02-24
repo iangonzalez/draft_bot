@@ -21,6 +21,7 @@ import torch
 import set_config
 from training.iterable_draft_dataset import IterableDraftDataset
 from training.draft_dataset_splitter import DraftDatasetSplitter
+from metrics.recall import recall_at_n_overall
 
 _SET_CONFIG = None
 
@@ -30,8 +31,11 @@ def test_lstm(lstm, dataloader, cuda_device):
         lstm.to(cuda_device)
     all_preds = None
     with torch.no_grad():
-        correct = 0.0
-        total = 0.0
+        recall_at1_total = 0.0
+        recall_at2_total = 0.0
+        recall_at3_total = 0.0
+        total_batches = 0.0
+        total_picks = 0.0
         for data in dataloader:
             data = data.to(torch.float32)
             # Swap first and second dims, since LSTM expects first dim
@@ -50,14 +54,15 @@ def test_lstm(lstm, dataloader, cuda_device):
             else:
                 all_preds = torch.cat((all_preds, y.transpose(0,1)), dim=0)
 
-            highest_predicted = torch.argmax(y, 2)
-            actual_picked = torch.argmax(labels, 2)
-
-            correct += int((highest_predicted == actual_picked).sum())
-            total += highest_predicted.numel()
-    
-        accuracy = correct / total
-        print("Validation accuracy:", accuracy, " Total picks:", int(total))
+            recall_at1_total += recall_at_n_overall(y, labels, n=1)
+            recall_at2_total += recall_at_n_overall(y, labels, n=2)
+            recall_at3_total += recall_at_n_overall(y, labels, n=3)
+            total_batches += 1
+            total_picks += data.shape[1] * data.shape[0]
+        print("Total picks evaluated: ", total_picks)
+        print("Recall@1: ", recall_at1_total.item() / total_batches)
+        print("Recall@2: ", recall_at2_total.item() / total_batches)
+        print("Recall@3: ", recall_at3_total.item() / total_batches)
     return all_preds
 
 

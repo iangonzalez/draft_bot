@@ -6,3 +6,5 @@
 /data/arena_logs
 
 *.pyc
+
+/src/.venv

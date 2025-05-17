@@ -47,7 +47,7 @@ class ArenaLogLineParser:
         return vec
 
     def pack_line_to_vector(self, line):
-        match = re.search("Draft.Notify (?P<json_blob>\{.*\})", line)
+        match = re.search(r"Draft.Notify (?P<json_blob>\{.*\})", line)
         if match:
             json_blob = match.group("json_blob")
             draft_obj = json.loads(json_blob)
@@ -64,7 +64,7 @@ class ArenaLogLineParser:
 
 
     def pick_line_to_vector(self, line):
-        match = re.search("Event_PlayerDraftMakePick (?P<json_blob>\{.*\})", line)
+        match = re.search(r"Event_PlayerDraftMakePick (?P<json_blob>\{.*\})", line)
         if match:
             json_blob = match.group("json_blob")
             draft_obj = json.loads(json_blob)

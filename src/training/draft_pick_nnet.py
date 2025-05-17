@@ -54,7 +54,21 @@ class DraftPickNN(nn.Module):
         self.dropout3 = nn.Dropout(0.5)
         
         self.linear4 = nn.Linear(self.net_dim, self.net_dim)
-        self.relu4 = nn.LeakyReLU(negative_slope = self.ns)
+
+        # Cache the most recent activations of each hidden layer for use in training
+        # SAEs on this model.
+        self.activations = {
+            'layer1': None,
+            'layer2': None,
+            'layer3': None,
+        }
+    
+    def get_most_recent_hidden_activations(self):
+        """
+        Returns the most recent activations of each hidden layer. This is used
+        for training SAEs on this model.
+        """
+        return self.activations
 
     def forward(self, x):
         """
@@ -78,16 +92,22 @@ class DraftPickNN(nn.Module):
         y = self.bn1(y)
         y = self.relu1(y)
         y = self.dropout1(y)
+        if not self.training:
+            self.activations['layer1'] = y.detach()
 
         y = self.linear2(y)
         y = self.bn2(y)
         y = self.relu2(y)
         y = self.dropout2(y)
+        if not self.training:
+            self.activations['layer2'] = y.detach()
 
         y = self.linear3(y)
         y = self.bn3(y)
         y = self.relu3(y)
         y = self.dropout3(y)
+        if not self.training:
+            self.activations['layer3'] = y.detach()
 
         y = self.linear4(y)
 

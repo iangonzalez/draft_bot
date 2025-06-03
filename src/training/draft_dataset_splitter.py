@@ -28,7 +28,7 @@ class DraftDatasetSplitter:
     """
 
     def __init__(self, processed_data_basedir, percent_train=0.8, percent_cv=0.1):
-        splits_paths = sorted(glob.glob(os.path.join(processed_data_basedir + "*")))
+        splits_paths = sorted(glob.glob(os.path.join(processed_data_basedir, "*")))
         splits_count = len(splits_paths)
         if splits_count <= 1:
             print("Can't split data set with only", splits_count, "splits")

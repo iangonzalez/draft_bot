@@ -44,16 +44,30 @@ def expand_card_counts(names_with_counts):
     return names
 
 
+def extract_relevant_info_from_card_json(card_json):
+  relevant_info = {}
+  for key in ['name', 'mana_cost', 'colors', 'color_identity', 'rarity', 'type_line', 'oracle_text', 'power', 'toughness']:
+    if key in card_json:
+      relevant_info[key] = card_json[key]
+  return relevant_info
+
+
 class PickDisplayer:
     """
     Displays pick / prediction information to the console and to a figure using
     pyplot.
     """
-    def __init__(self, per_set_config: SetConfig, draft_uid) -> None:
+    def __init__(self, per_set_config: SetConfig, draft_uid="default_draft_uid") -> None:
        self.per_set_config = per_set_config
        self.sorted_card_names = json.load(open(per_set_config.card_list_path, "r"))
        self.card_name_to_index = {c: i for i, c in enumerate(self.sorted_card_names)}
        self.image_dir = per_set_config.card_image_dir
+       self.metadata_dir = per_set_config.card_metadata_dir
+       self.local_cache_of_card_json = {}
+       for name in self.sorted_card_names:
+           # For easier file naming, the card names have been cleaned up to remove apostrophes.
+           name = name.replace("'", "_")
+           self.local_cache_of_card_json[name] = json.load(open(self.metadata_dir + f"/{name}.json"))
        self.draft_uid = draft_uid
 
 
@@ -109,6 +123,10 @@ class PickDisplayer:
             if per_image_scores:
                 plt.title("{:1f}".format(per_image_scores[i]))
         plt.savefig(os.path.join("/tmp", self.draft_uid + "p" + str(pack_num) + "p" + str(pick_num) + "test.png"))
+
+    def get_card_metadata_for_input_vector(self, input_vector):
+        pool_names = self._card_vector_to_card_names(input_vector[self.per_set_config.set_size:])
+        return [extract_relevant_info_from_card_json(self.local_cache_of_card_json[name]) for name in pool_names]
 
     def print_current_pool_to_console(self, pool_vector):
         pool_names = self._card_vector_to_card_names(pool_vector)

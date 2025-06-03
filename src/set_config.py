@@ -26,6 +26,7 @@
 #     "card_list_path": "../data/BRO/per_card_data/BRO_canonical_card_list.json",
 #     "card_arena_ids_path": "../data/BRO/per_card_data/arena_ids_to_names.json",
 #     "card_image_dir": "../data/BRO/card_images",
+#     "card_metadata_dir": "../data/BRO/card_metadata",
 #     "set_size": 335
 # }
 import json
@@ -46,6 +47,7 @@ def get_set_config_from_path(path):
         config["card_list_path"],
         config["card_arena_ids_path"],
         config["card_image_dir"],
+        config["card_metadata_dir"],
         config["set_size"]
     )
 
@@ -57,4 +59,5 @@ class SetConfig:
     card_list_path: str
     card_arena_ids_path: str
     card_image_dir: str
+    card_metadata_dir: str
     set_size: int

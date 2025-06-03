@@ -4,5 +4,6 @@
     "card_list_path": "../data/BRO/per_card_data/BRO_canonical_card_list.json",
     "card_arena_ids_path": "../data/BRO/per_card_data/arena_ids_to_names.json",
     "card_image_dir": "../data/BRO/card_images",
+    "card_metadata_dir": "../data/BRO/card_metadata",
     "set_size": 335
 }

@@ -1,25 +1,29 @@
 import argparse
 import asyncio
 from collections import Counter
-import os
-import time
+
 import torch
-from interp.output_based_autointerp_quiz_evaluator import OutputBasedAutoInterpQuizEvaluator
-from interp.autointerp_batch_prompt_runner import create_unfilled_autointerp_results, fill_autointerp_results, save_latent_autointerp_results, save_quiz_autointerp_results
-from interp.output_based_autointerp import OutputBasedAutoInterp
+
 import set_config
-from arena_draft_bot import pick_display_utils
+from interp.autointerp_batch_prompt_runner import (
+    create_unfilled_autointerp_results,
+    fill_autointerp_results,
+    save_latent_autointerp_results,
+    save_quiz_autointerp_results
+)
 from interp.claude_autointerp_client import AutoInterpMode, ClaudeAutoInterpClient
-from training.iterable_draft_dataset import IterableDraftDataset
+from interp.output_based_autointerp import OutputBasedAutoInterp
+from interp.output_based_autointerp_quiz_evaluator import OutputBasedAutoInterpQuizEvaluator
 from training.draft_dataset_splitter import DraftDatasetSplitter
-from training.sae_instrumented_draft_pick_nnet import SAEInstrumentedDraftPickNN
+from training.iterable_draft_dataset import IterableDraftDataset
 from training.sae import SparseAutoencoder
+from training.sae_instrumented_draft_pick_nnet import SAEInstrumentedDraftPickNN
 
 _SET_CONFIG = None
 
 
 def sample_test_batch(data_dir, draft_net, sample_size, sae_instrumented_layer_idx=3):
-    """Taking a closer look at one test batch. Get the predictions for N picks."""
+    """Taking a closer look at one test batch. Get all relevant information for N picks."""
     data = None
     inputs = None
     labels = None
@@ -50,7 +54,6 @@ def sample_test_batch(data_dir, draft_net, sample_size, sae_instrumented_layer_i
             pre_latent_hidden_activations = draft_net.get_most_recent_hidden_activations()[f"layer{sae_instrumented_layer_idx}"]
             break  # stop after one iteration
 
-    highest_predicted = torch.argmax(y, 1)
     actual_picked = torch.argmax(labels, 1)
     return inputs, y, actual_picked, latents, pre_latent_hidden_activations
 

@@ -66,8 +66,8 @@ class PickDisplayer:
        self.local_cache_of_card_json = {}
        for name in self.sorted_card_names:
            # For easier file naming, the card names have been cleaned up to remove apostrophes.
-           name = name.replace("'", "_")
-           self.local_cache_of_card_json[name] = json.load(open(self.metadata_dir + f"/{name}.json"))
+           filename = name.replace("'", "_")
+           self.local_cache_of_card_json[name] = json.load(open(self.metadata_dir + f"/{filename}.json"))
        self.draft_uid = draft_uid
 
 
@@ -113,7 +113,7 @@ class PickDisplayer:
         fig = plt.figure(figsize=(columns*2, rows*2))
 
         for i, name in enumerate(names):
-            image = Image.open(self.image_dir + "/{0}.jpg".format(name))
+            image = Image.open(self.image_dir + "/{0}.jpg".format(name.replace("'", "_")))
             if index_max is not None and index_max == i:
                 draw_red_outline_around_image(image)
             fig.add_subplot(rows, columns, i+1)
@@ -125,8 +125,11 @@ class PickDisplayer:
         plt.savefig(os.path.join("/tmp", self.draft_uid + "p" + str(pack_num) + "p" + str(pick_num) + "test.png"))
 
     def get_card_metadata_for_input_vector(self, input_vector):
-        pool_names = self._card_vector_to_card_names(input_vector[self.per_set_config.set_size:])
+        pool_names = expand_card_counts(self._card_vector_to_card_names(input_vector[self.per_set_config.set_size:]))
         return [extract_relevant_info_from_card_json(self.local_cache_of_card_json[name]) for name in pool_names]
+
+    def get_card_names_for_input_vector(self, input_vector):
+        return expand_card_counts(self._card_vector_to_card_names(input_vector[self.per_set_config.set_size:]))
 
     def print_current_pool_to_console(self, pool_vector):
         pool_names = self._card_vector_to_card_names(pool_vector)

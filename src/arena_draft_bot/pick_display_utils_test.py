@@ -57,10 +57,10 @@ def test_print_pack_and_preds(capsys, set_config_for_test):
 
 def test_get_card_metadata_for_input_vector(set_config_for_test):
     pick_displayer = PickDisplayer(set_config_for_test, draft_uid="test")
-
-    input_vector = torch.zeros(set_config_for_test.set_size)
-    input_vector[0] = 1.0
-    input_vector[1] = 1.0
+    input_vector = torch.zeros(set_config_for_test.set_size * 2)
+    # Set values in the second half of the vector (pool section)
+    input_vector[set_config_for_test.set_size + 0] = 1.0
+    input_vector[set_config_for_test.set_size + 1] = 1.0
     metadata = pick_displayer.get_card_metadata_for_input_vector(input_vector)
     assert metadata[0]["name"] == "Adaptive Automaton"
     assert metadata[1]["name"] == "Aeronaut Cavalry"

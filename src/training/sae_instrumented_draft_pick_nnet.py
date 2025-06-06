@@ -43,6 +43,9 @@ class SAEInstrumentedDraftPickNN(nn.Module):
 
     def get_most_recent_latent_activations(self):
         return self.latent_activations
+    
+    def get_most_recent_prepack_activations(self):
+        return self.pre_pack_activations
 
     def set_latent_multipliers(self, latents, multipliers):
         assert len(latents) == len(multipliers)
@@ -81,7 +84,7 @@ class SAEInstrumentedDraftPickNN(nn.Module):
         y = self.draft_net_copy.bn1(y)
         y = self.draft_net_copy.relu1(y)
         y_after_dropout1 = self.draft_net_copy.dropout1(y)
-        self.pre_latent_hidden_activations["layer1"] = y_after_dropout1
+        self.pre_latent_hidden_activations["layer1"] = y_after_dropout1.clone().detach()
 
         y_for_linear2 = self._maybe_apply_sae_to_layer(y_after_dropout1, 1)
 
@@ -90,7 +93,7 @@ class SAEInstrumentedDraftPickNN(nn.Module):
         y = self.draft_net_copy.bn2(y)
         y = self.draft_net_copy.relu2(y)
         y_after_dropout2 = self.draft_net_copy.dropout2(y)
-        self.pre_latent_hidden_activations["layer2"] = y_after_dropout2
+        self.pre_latent_hidden_activations["layer2"] = y_after_dropout2.clone().detach()
 
         y_for_linear3 = self._maybe_apply_sae_to_layer(y_after_dropout2, 2)
 
@@ -99,12 +102,13 @@ class SAEInstrumentedDraftPickNN(nn.Module):
         y = self.draft_net_copy.bn3(y)
         y = self.draft_net_copy.relu3(y)
         y_after_dropout3 = self.draft_net_copy.dropout3(y)
-        self.pre_latent_hidden_activations["layer3"] = y_after_dropout3
+        self.pre_latent_hidden_activations["layer3"] = y_after_dropout3.clone().detach()
 
         y_for_linear4 = self._maybe_apply_sae_to_layer(y_after_dropout3, 3)
 
         # --- Final Linear Layer ---
         y = self.draft_net_copy.linear4(y_for_linear4)
+        self.pre_pack_activations = y.clone().detach()
 
         y *= pack # Apply pack constraint
         return y

@@ -51,3 +51,5 @@ def test_draft_pick_nnet_forward_pass(set_config_for_test):
     assert net.get_most_recent_hidden_activations()["layer1"].shape == (1, set_config_for_test.set_size)
     assert net.get_most_recent_hidden_activations()["layer2"].shape == (1, set_config_for_test.set_size)
     assert net.get_most_recent_hidden_activations()["layer3"].shape == (1, set_config_for_test.set_size)
+
+    assert not torch.allclose(net.get_most_recent_hidden_activations()["layer3"], net.get_most_recent_hidden_activations()["layer2"]), "Activations are equal."

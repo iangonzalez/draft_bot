@@ -93,21 +93,21 @@ class DraftPickNN(nn.Module):
         y = self.relu1(y)
         y = self.dropout1(y)
         if not self.training:
-            self.activations['layer1'] = y.detach()
+            self.activations['layer1'] = y.clone().detach()
 
         y = self.linear2(y)
         y = self.bn2(y)
         y = self.relu2(y)
         y = self.dropout2(y)
         if not self.training:
-            self.activations['layer2'] = y.detach()
+            self.activations['layer2'] = y.clone().detach()
 
         y = self.linear3(y)
         y = self.bn3(y)
         y = self.relu3(y)
         y = self.dropout3(y)
         if not self.training:
-            self.activations['layer3'] = y.detach()
+            self.activations['layer3'] = y.clone().detach()
 
         y = self.linear4(y)
 

@@ -11,7 +11,7 @@ from training.iterable_draft_dataset import IterableDraftDataset
 from training.draft_dataset_splitter import DraftDatasetSplitter
 from training.sae import SparseAutoencoder
 
-def train_and_save_sae_on_nnet_activation(data_dir, out_dir, draft_net, input_dim, layer_idx=2, draft_net_version=None):
+def train_and_save_sae_on_nnet_activation(data_dir, out_dir, draft_net, input_dim, layer_idx=3, draft_net_version=None):
   # --- SAE Configuration ---
   # The input_dim for SAE is the number of features from the hooked layer.
   sae_input_dim = input_dim
@@ -67,7 +67,7 @@ def train_and_save_sae_on_nnet_activation(data_dir, out_dir, draft_net, input_di
           # 1. Get activations from DraftPickNN
           # We modified DraftPickNN.forward to directly return the activations we want
           _ = draft_net(inputs)
-          target_activations = draft_net.get_most_recent_hidden_activations()[f"layer{layer_idx+1}"]
+          target_activations = draft_net.get_most_recent_hidden_activations()[f"layer{layer_idx}"]
           # Ensure target_activations are flat if necessary (should be [batch_size, features])
           if target_activations.dim() > 2:
               target_activations = target_activations.view(target_activations.size(0), -1)
@@ -101,9 +101,9 @@ def train_and_save_sae_on_nnet_activation(data_dir, out_dir, draft_net, input_di
             f"KL Loss: {avg_kl_loss:.6f}")
 
   print("\nSAE Training Finished.")
-  model_file = f"sae_on_draft_bot_nnet_activation{layer_idx+1}_{datetime.datetime.now()}.pt"
+  model_file = f"sae_on_draft_bot_nnet_activation{layer_idx}_{datetime.datetime.now()}.pt"
   if draft_net_version:
-    model_file = f"sae_on_draft_bot_nnet_activation{layer_idx+1}_{draft_net_version}.pt"
+    model_file = f"sae_on_draft_bot_nnet_activation{layer_idx}_{draft_net_version}.pt"
   torch.save(sae_model, os.path.join(out_dir, model_file))
   print(f"\nSAE saved to {os.path.join(out_dir, model_file)}")
   return model_file
@@ -119,7 +119,7 @@ if __name__ == "__main__":
                         help='set id of the drafts being tested (configuration purposes).')
     parser.add_argument('--set-config-path', type=str, required=False, dest='set_config_path',
                         help='set config of the drafts being tested (configuration purposes). Overrides set-id.')
-    parser.add_argument('--layer-idx', type=int, default=2, dest='layer_idx',
+    parser.add_argument('--layer-idx', type=int, default=3, dest='layer_idx',
                         help='layer index of the DraftPickNN to train on.')
     parser.add_argument('--draft-net-file', type=str, default=None, dest='draft_net_file',
                         help='File name of the DraftPickNN to train on.')
